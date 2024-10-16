@@ -10,10 +10,12 @@ import sys
 import os
 import re
 
+
 def print_usage_and_exit():
     """Print usage instructions and exit with status 1."""
     print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
     sys.exit(1)
+
 
 def check_file_exists(filename):
     """Check if the given file exists."""
@@ -21,22 +23,23 @@ def check_file_exists(filename):
         print(f"Missing {filename}", file=sys.stderr)
         sys.exit(1)
 
-def convert_headings(line):
-    """Convert Markdown headings to HTML."""
-    heading_match = re.match(r'^(#+)\s*(.*)', line)
-    if heading_match:
-        level = len(heading_match.group(1))  # Count the number of '#' characters
-        title = heading_match.group(2).strip()
-        return f"<h{level}>{title}</h{level}>"
-    return None
 
-def convert_unordered_list(lines):
-    """Convert Markdown unordered lists to HTML."""
+def convert_markdown_to_html(lines):
+    """Convert Markdown lines to HTML."""
     html_lines = []
     in_list = False
 
     for line in lines:
-        if line.startswith('- '):
+        # Convert headings
+        heading_match = re.match(r"^(#+)\s*(.*)", line)
+        if heading_match:
+            level = len(heading_match.group(1))  # Count the number of '#' characters
+            title = heading_match.group(2).strip()
+            html_lines.append(f"<h{level}>{title}</h{level}>")
+            continue
+
+        # Convert unordered lists
+        if line.startswith("- "):
             if not in_list:
                 html_lines.append("<ul>")
                 in_list = True
@@ -52,6 +55,7 @@ def convert_unordered_list(lines):
 
     return html_lines
 
+
 def main():
     """Main function to check command-line arguments and file existence."""
     # Check the number of arguments
@@ -65,28 +69,20 @@ def main():
     check_file_exists(input_file)
 
     # Read the Markdown file and convert to HTML
-    with open(input_file, 'r') as file:
+    with open(input_file, "r") as file:
         lines = file.readlines()
 
-    html_lines = []
-    
-    for line in lines:
-        heading_html = convert_headings(line)
-        if heading_html:
-            html_lines.append(heading_html)
-
-    # Convert unordered lists
-    list_html = convert_unordered_list(lines)
-    html_lines.extend(list_html)
+    # Convert Markdown to HTML
+    html_lines = convert_markdown_to_html(lines)
 
     # Write the HTML output to the output file
-    with open(output_file, 'w') as file:
+    with open(output_file, "w") as file:
         for html_line in html_lines:
             file.write(html_line + "\n")
 
     # If everything is okay, just exit with status 0
     sys.exit(0)
 
+
 if __name__ == "__main__":
     main()
-
