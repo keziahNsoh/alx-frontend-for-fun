@@ -30,6 +30,28 @@ def convert_headings(line):
         return f"<h{level}>{title}</h{level}>"
     return None
 
+def convert_unordered_list(lines):
+    """Convert Markdown unordered lists to HTML."""
+    html_lines = []
+    in_list = False
+
+    for line in lines:
+        if line.startswith('- '):
+            if not in_list:
+                html_lines.append("<ul>")
+                in_list = True
+            item = line[2:].strip()  # Remove the '- ' prefix
+            html_lines.append(f"<li>{item}</li>")
+        else:
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+
+    if in_list:
+        html_lines.append("</ul>")
+
+    return html_lines
+
 def main():
     """Main function to check command-line arguments and file existence."""
     # Check the number of arguments
@@ -47,10 +69,15 @@ def main():
         lines = file.readlines()
 
     html_lines = []
+    
     for line in lines:
         heading_html = convert_headings(line)
         if heading_html:
             html_lines.append(heading_html)
+
+    # Convert unordered lists
+    list_html = convert_unordered_list(lines)
+    html_lines.extend(list_html)
 
     # Write the HTML output to the output file
     with open(output_file, 'w') as file:
