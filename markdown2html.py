@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-"""markdown2html.py
+"""
+markdown2html.py
 
 A script that converts Markdown files to HTML format. It checks for
 the existence of the Markdown file and handles command-line arguments
@@ -8,97 +9,74 @@ appropriately.
 
 import sys
 import os
-import re
 
 
-def print_usage_and_exit():
-    """Print usage instructions and exit with status 1."""
-    print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
-    sys.exit(1)
+def markdown_to_html(input_file, output_file):
+    if not os.path.exists(input_file):
+        print(f"Missing {input_file}", file=sys.stderr)
+        return 1
 
+    with open(input_file, "r") as md_file:
+        lines = md_file.readlines()
 
-def check_file_exists(filename):
-    """Check if the given file exists."""
-    if not os.path.exists(filename):
-        print(f"Missing {filename}", file=sys.stderr)
-        sys.exit(1)
-
-
-def convert_markdown_to_html(lines):
-    """Convert Markdown lines to HTML."""
     html_lines = []
-    in_ordered_list = False
-    in_unordered_list = False
+    in_list = False
+    paragraph_lines = []
 
     for line in lines:
-        # Convert headings
-        heading_match = re.match(r"^(#+)\s*(.*)", line)
-        if heading_match:
-            level = len(heading_match.group(1))  # Count the number of '#' characters
-            title = heading_match.group(2).strip()
-            html_lines.append(f"<h{level}>{title}</h{level}>")
-            continue
+        line = line.rstrip()  # Remove trailing whitespace
 
-        # Convert unordered lists
-        if line.startswith("- "):
-            if not in_unordered_list:
+        if line.startswith("#"):  # Handle headings
+            if paragraph_lines:
+                html_lines.append(f"<p>{'<br />'.join(paragraph_lines)}</p>")
+                paragraph_lines = []
+            level = line.count("#")
+            content = line[level:].strip()
+            html_lines.append(f"<h{level}>{content}</h{level}>")
+
+        elif line.startswith("- "):  # Handle unordered list
+            if not in_list:
                 html_lines.append("<ul>")
-                in_unordered_list = True
-            item = line[2:].strip()  # Remove the '- ' prefix
-            html_lines.append(f"<li>{item}</li>")
-            continue
-        else:
-            if in_unordered_list:
-                html_lines.append("</ul>")
-                in_unordered_list = False
+                in_list = True
+            html_lines.append(f"<li>{line[2:].strip()}</li>")
 
-        # Convert ordered lists
-        if line.startswith("* "):
-            if not in_ordered_list:
+        elif line.startswith("* "):  # Handle ordered list
+            if not in_list:
                 html_lines.append("<ol>")
-                in_ordered_list = True
-            item = line[2:].strip()  # Remove the '* ' prefix
-            html_lines.append(f"<li>{item}</li>")
-        else:
-            if in_ordered_list:
-                html_lines.append("</ol>")
-                in_ordered_list = False
+                in_list = True
+            html_lines.append(f"<li>{line[2:].strip()}</li>")
 
-    if in_unordered_list:
+        elif line.strip() == "":  # Handle empty line (end of a paragraph)
+            if paragraph_lines:
+                html_lines.append(f"<p>{'<br />'.join(paragraph_lines)}</p>")
+                paragraph_lines = []
+            if in_list:
+                html_lines.append("</ul>")
+                in_list = False
+
+        else:  # Handle normal text
+            paragraph_lines.append(line)
+
+    # Finalize any remaining content
+    if paragraph_lines:
+        html_lines.append(f"<p>{'<br />'.join(paragraph_lines)}</p>")
+
+    # Close any open list tags if still in a list
+    if in_list:
         html_lines.append("</ul>")
-    if in_ordered_list:
-        html_lines.append("</ol>")
 
-    return html_lines
+    # Write to output file
+    with open(output_file, "w") as html_file:
+        html_file.write("\n".join(html_lines))
 
-
-def main():
-    """Main function to check command-line arguments and file existence."""
-    # Check the number of arguments
-    if len(sys.argv) < 3:
-        print_usage_and_exit()
-
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-
-    # Check if the Markdown file exists
-    check_file_exists(input_file)
-
-    # Read the Markdown file and convert to HTML
-    with open(input_file, "r") as file:
-        lines = file.readlines()
-
-    # Convert Markdown to HTML
-    html_lines = convert_markdown_to_html(lines)
-
-    # Write the HTML output to the output file
-    with open(output_file, "w") as file:
-        for html_line in html_lines:
-            file.write(html_line + "\n")
-
-    # If everything is okay, just exit with status 0
-    sys.exit(0)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) < 3:
+        print("Usage: ./markdown2html.py README.md README.html", file=sys.stderr)
+        sys.exit(1)
+
+    input_file = sys.argv[1]
+    output_file = sys.argv[2]
+    sys.exit(markdown_to_html(input_file, output_file))
