@@ -27,7 +27,8 @@ def check_file_exists(filename):
 def convert_markdown_to_html(lines):
     """Convert Markdown lines to HTML."""
     html_lines = []
-    in_list = False
+    in_ordered_list = False
+    in_unordered_list = False
 
     for line in lines:
         # Convert headings
@@ -40,18 +41,33 @@ def convert_markdown_to_html(lines):
 
         # Convert unordered lists
         if line.startswith("- "):
-            if not in_list:
+            if not in_unordered_list:
                 html_lines.append("<ul>")
-                in_list = True
+                in_unordered_list = True
             item = line[2:].strip()  # Remove the '- ' prefix
             html_lines.append(f"<li>{item}</li>")
+            continue
         else:
-            if in_list:
+            if in_unordered_list:
                 html_lines.append("</ul>")
-                in_list = False
+                in_unordered_list = False
 
-    if in_list:
+        # Convert ordered lists
+        if line.startswith("* "):
+            if not in_ordered_list:
+                html_lines.append("<ol>")
+                in_ordered_list = True
+            item = line[2:].strip()  # Remove the '* ' prefix
+            html_lines.append(f"<li>{item}</li>")
+        else:
+            if in_ordered_list:
+                html_lines.append("</ol>")
+                in_ordered_list = False
+
+    if in_unordered_list:
         html_lines.append("</ul>")
+    if in_ordered_list:
+        html_lines.append("</ol>")
 
     return html_lines
 
